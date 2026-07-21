@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>단어 급수 검색기 — 교육과정 어휘 판정</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #fff; --text: #1a1d21; --muted: #6b7280;
+      --line: #e5e7eb; --accent: #2563eb;
+      --cho: #16a34a; --jung: #2563eb; --go: #dc2626; --none: #9ca3af;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#0f1115; --card:#181b21; --text:#e8eaed; --muted:#9aa0a6;
+        --line:#2a2f37; --accent:#60a5fa; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+      font-family: system-ui, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      line-height:1.6; padding: 24px 16px; }
+    .wrap { max-width: 780px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: .9rem; margin: 0 0 20px; }
+    .searchbar { display:flex; gap:8px; margin-bottom: 8px; }
+    input[type=text] { flex:1; padding: 12px 14px; font-size:1.05rem;
+      border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); }
+    button { padding: 12px 18px; font-size:1rem; border:0; border-radius:10px;
+      background:var(--accent); color:#fff; cursor:pointer; font-weight:600; }
+    .hint { color:var(--muted); font-size:.82rem; margin: 0 0 18px; }
+    .hint code { background:var(--card); padding:1px 6px; border-radius:5px; border:1px solid var(--line); cursor:pointer; }
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:560px){ .cards{ grid-template-columns:1fr; } }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+    .card h2 { font-size:.95rem; margin:0 0 12px; color:var(--muted); font-weight:600; letter-spacing:.02em; }
+    .mode { display:flex; align-items:center; justify-content:space-between; padding:8px 0; }
+    .mode + .mode { border-top:1px dashed var(--line); }
+    .mode .label { font-size:.9rem; }
+    .mode .label small { display:block; color:var(--muted); font-size:.75rem; }
+    .badge { font-size:.85rem; font-weight:700; padding:4px 12px; border-radius:999px; color:#fff; white-space:nowrap; }
+    .b-cho{background:var(--cho)} .b-jung{background:var(--jung)} .b-go{background:var(--go)} .b-none{background:var(--none)}
+    .detail { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:12px; }
+    .detail h2 { font-size:.95rem; margin:0 0 10px; color:var(--muted); }
+    table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-weight:600; }
+    .rel { font-weight:700; }
+    .rel-표제어{color:var(--accent)} .rel-굴절어{color:var(--cho)} .rel-파생어{color:#d97706}
+    .empty { color:var(--muted); padding:8px 0; }
+    .meaning { margin-top:10px; font-size:.9rem; color:var(--muted); }
+    footer { color:var(--muted); font-size:.78rem; margin-top:22px; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>단어 급수 검색기</h1>
+    <p class="sub">교육과정 기본 어휘(별표3)에서 급수를 찾고, <b>굴절어만</b> 인정할 때와 <b>파생어까지</b> 인정할 때의 포함 여부를 판정합니다.</p>
+
+    <div class="searchbar">
+      <input type="text" id="q" placeholder="영어 단어를 입력하세요 (예: happiness, feet, teacher)" autocomplete="off" autofocus />
+      <button id="go">검색</button>
+    </div>
+    <p class="hint">예시:
+      <code>happiness</code> <code>feet</code> <code>teacher</code> <code>taller</code> <code>circulate</code> <code>quickly</code> <code>unhappy</code>
+    </p>
+
+    <div id="result"></div>
+
+    <footer>
+      급 표시 · <b>초등</b>=별표3 <code>*</code> · <b>중등</b>=<code>**</code> · <b>고등</b>=표시 없음 · 데이터: Korea-curri-standards-db
+    </footer>
+  </div>
+
+  <script src="vocab-data.js"></script>
+  <script src="engine.js"></script>
+  <script>
+    // 앱 로직 — 무의존, 순수 브라우저 JS
+    const ENGINE = window.WLSE_ENGINE;
+    const VOCAB = window.WLSE_VOCAB;
+    const index = ENGINE.buildIndex(VOCAB);
+
+    const $q = document.getElementById('q');
+    const $result = document.getElementById('result');
+
+    const levelClass = (lv) => lv === '초등' ? 'b-cho' : lv === '중등' ? 'b-jung' : lv === '고등' ? 'b-go' : 'b-none';
+
+    function badge(mode) {
+      if (!mode) return '<span class="badge b-none">미포함</span>';
+      return '<span class="badge ' + levelClass(mode.level) + '">' + mode.level + '</span>';
+    }
+
+    function via(mode) {
+      if (!mode) return '<small>어느 표제어에도 연결 안 됨</small>';
+      return '<small>' + mode.headword + ' 경유 · ' + mode.relation + '</small>';
+    }
+
+    function verdictCard(ver, v) {
+      return '<div class="card"><h2>' + ver + ' 개정 교육과정</h2>' +
+        '<div class="mode"><span class="label">모드 A · 굴절어만<br>' + via(v.modeA) + '</span>' + badge(v.modeA) + '</div>' +
+        '<div class="mode"><span class="label">모드 B · 파생어까지<br>' + via(v.modeB) + '</span>' + badge(v.modeB) + '</div>' +
+        '</div>';
+    }
+
+    function routesTable(routes) {
+      if (!routes.length) return '<p class="empty">교육과정 표제어와 연결되는 경로를 찾지 못했습니다.</p>';
+      let rows = routes.map(function (r) {
+        const e = VOCAB.entries[r.headword];
+        const lv = ['2015', '2022'].map(function (ver) {
+          return e.forms[ver] ? ver + ':' + e.forms[ver].level : ver + ':—';
+        }).join(' / ');
+        return '<tr><td class="rel rel-' + r.relation + '">' + r.relation + '</td>' +
+          '<td>' + r.headword + '</td><td>' + lv + '</td>' +
+          '<td>' + r.rule + '</td><td>' + r.source + '</td></tr>';
+      }).join('');
+      return '<table><thead><tr><th>관계</th><th>기반 표제어</th><th>급(2015/2022)</th><th>규칙</th><th>출처</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    function meaningLine(res) {
+      // 대표 경로의 뜻/CEFR
+      const best = res.verdict['2022'].modeB || res.verdict['2015'].modeB ||
+                   res.verdict['2022'].modeA || res.verdict['2015'].modeA;
+      if (!best || !best.meaning) return '';
+      return '<p class="meaning">뜻: ' + best.meaning + (best.cefr ? ' · CEFR ' + best.cefr : '') + '</p>';
+    }
+
+    function search(word) {
+      const res = ENGINE.analyze(word, index);
+      if (!res.query) { $result.innerHTML = ''; return; }
+      $result.innerHTML =
+        '<div class="cards">' + verdictCard('2015', res.verdict['2015']) + verdictCard('2022', res.verdict['2022']) + '</div>' +
+        '<div class="detail"><h2>분석 상세 — "' + res.query + '"</h2>' + routesTable(res.routes) + meaningLine(res) + '</div>';
+    }
+
+    document.getElementById('go').addEventListener('click', () => search($q.value));
+    $q.addEventListener('keydown', (e) => { if (e.key === 'Enter') search($q.value); });
+    document.querySelectorAll('.hint code').forEach((c) =>
+      c.addEventListener('click', () => { $q.value = c.textContent; search(c.textContent); }));
+  </script>
+</body>
+</html>
