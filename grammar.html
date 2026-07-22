@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>문법 급수 분류기 — 초·중·고 개략 분류</title>
+  <style>
+    :root {
+      --bg:#f6f7f9; --card:#fff; --text:#1a1d21; --muted:#6b7280;
+      --line:#e5e7eb; --accent:#7c3aed;
+      --cho:#16a34a; --jung:#2563eb; --go:#dc2626;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#0f1115; --card:#181b21; --text:#e8eaed; --muted:#9aa0a6; --line:#2a2f37; --accent:#a78bfa; }
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+      font-family:system-ui,"Malgun Gothic","Apple SD Gothic Neo",sans-serif; line-height:1.6; padding:24px 16px; }
+    .wrap { max-width:860px; margin:0 auto; }
+    .nav { font-size:.85rem; margin-bottom:14px; }
+    .nav a { color:var(--accent); text-decoration:none; font-weight:600; }
+    h1 { font-size:1.4rem; margin:0 0 4px; }
+    .sub { color:var(--muted); font-size:.9rem; margin:0 0 12px; }
+    .warn { background:color-mix(in srgb, var(--go) 12%, transparent); border:1px solid color-mix(in srgb,var(--go) 35%,transparent);
+      color:var(--text); font-size:.82rem; border-radius:10px; padding:10px 12px; margin-bottom:18px; }
+    .searchbar { display:flex; gap:8px; margin-bottom:8px; }
+    input[type=text] { flex:1; padding:12px 14px; font-size:1.05rem; border:1px solid var(--line);
+      border-radius:10px; background:var(--card); color:var(--text); }
+    button { padding:12px 18px; font-size:1rem; border:0; border-radius:10px; background:var(--accent);
+      color:#fff; cursor:pointer; font-weight:600; }
+    .hint { color:var(--muted); font-size:.82rem; margin:0 0 18px; }
+    .hint code { background:var(--card); padding:1px 6px; border-radius:5px; border:1px solid var(--line); cursor:pointer; }
+    .section-title { font-size:.9rem; color:var(--muted); font-weight:700; margin:18px 0 8px; }
+    .item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+    .item .head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .item .ko { font-weight:700; font-size:1rem; }
+    .item .en { color:var(--muted); font-size:.8rem; font-weight:400; }
+    .item .ex { color:var(--muted); font-size:.85rem; margin-top:4px; font-style:italic; }
+    .item .note { font-size:.82rem; margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); color:var(--text); }
+    .bands { display:flex; gap:6px; align-items:center; white-space:nowrap; }
+    .badge { font-size:.8rem; font-weight:700; padding:3px 10px; border-radius:999px; color:#fff; }
+    .b-초{background:var(--cho)} .b-중{background:var(--jung)} .b-고{background:var(--go)}
+    .lvl { font-size:.75rem; color:var(--muted); }
+    .lvl b { color:var(--text); }
+    table { width:100%; border-collapse:collapse; font-size:.86rem; margin-top:4px; }
+    th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--muted); font-weight:600; }
+    .col-band { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    @media (max-width:640px){ .col-band{ grid-template-columns:1fr; } }
+    .col h3 { font-size:.9rem; margin:0 0 8px; padding:6px 10px; border-radius:8px; color:#fff; }
+    .empty { color:var(--muted); font-size:.88rem; }
+    footer { color:var(--muted); font-size:.78rem; margin-top:22px; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="index.html">← 단어 급수 검색기</a></div>
+    <h1>문법 급수 분류기</h1>
+    <p class="sub">문법 항목을 검색하거나 영어 예문을 붙여넣으면, 초·중·고 중 어디에 해당하는지 <b>개략적으로</b> 보여줍니다.</p>
+
+    <div class="warn">
+      ⚠️ <b>개략 추정입니다 — 공식 정답표 아님.</b> 교육과정 별표4(언어 형식)는 문법을 학년별로 나누지 않고,
+      성취기준 데이터에도 문법-급 연계 정보가 없습니다. 아래 분류는 표준 교과 순서 + 교육학 판단에 근거한 초안입니다.
+    </div>
+
+    <div class="searchbar">
+      <input type="text" id="q" placeholder="예: 가정법 / 수동태 / passive / 또는 영어 문장 붙여넣기" autocomplete="off" autofocus />
+      <button id="go">검색</button>
+    </div>
+    <p class="hint">예시:
+      <code>가정법</code> <code>과거시제</code> <code>수동태</code> <code>관계대명사</code>
+      <code>He is sleeping now.</code> <code>If Joe had time, he would go.</code>
+    </p>
+
+    <div id="result"></div>
+
+    <hr style="border:0;border-top:1px solid var(--line);margin:24px 0" />
+    <h2 class="section-title">📚 전체 40개 문법 항목 — 급별 (어법 출제 기준)</h2>
+    <div id="allitems" class="col-band"></div>
+
+    <footer>
+      <b>도입급</b> = 의사소통 표현으로 처음 노출 · <b>어법급</b> = 명시적 어법 문항 적절 · 대표 급은 어법급 기준<br>
+      데이터: Korea-curri-standards-db 별표4 + 교육학 판단 · 초=초록 중=파랑 고=빨강
+    </footer>
+  </div>
+
+  <script src="grammar-data.js"></script>
+  <script src="grammar-engine.js"></script>
+  <script>
+    const DATA = window.WLSE_GRAMMAR;
+    const ENGINE = window.WLSE_GRAMMAR_ENGINE;
+    const $q = document.getElementById('q');
+    const $result = document.getElementById('result');
+
+    function badge(band) { return '<span class="badge b-' + band + '">' + band + '</span>'; }
+
+    function itemCard(it) {
+      return '<div class="item"><div class="head">' +
+        '<span class="ko">' + it.ko + ' <span class="en">' + it.en + '</span></span>' +
+        '<span class="bands">' +
+          '<span class="lvl">도입 <b>' + it.intro + '</b></span>' +
+          '<span class="lvl">어법 <b>' + it.explicit + '</b></span>' +
+          badge(it.band) +
+        '</span></div>' +
+        '<div class="ex">“' + it.ex + '”</div>' +
+        (it.note ? '<div class="note">💡 ' + it.note + '</div>' : '') +
+        '</div>';
+    }
+
+    function search(query) {
+      const res = ENGINE.analyze(query, DATA);
+      if (!res.query) { $result.innerHTML = ''; return; }
+      let html = '';
+      if (res.sentenceHits.length) {
+        html += '<div class="section-title">🔍 예문에서 탐지된 문법 구조 (' + res.sentenceHits.length + ')</div>' +
+          res.sentenceHits.map(itemCard).join('');
+      }
+      html += '<div class="section-title">📖 검색 결과 (' + res.keywordHits.length + ')</div>';
+      html += res.keywordHits.length ? res.keywordHits.map(itemCard).join('')
+        : '<p class="empty">일치하는 문법 항목이 없습니다. 한국어 구조명(예: 가정법)이나 영어 문장을 입력해 보세요.</p>';
+      $result.innerHTML = html;
+    }
+
+    function renderAll() {
+      const g = ENGINE.groupByBand(DATA);
+      const order = [['초', 'b-초', '초등'], ['중', 'b-중', '중등'], ['고', 'b-고', '고등']];
+      document.getElementById('allitems').innerHTML = order.map(function (o) {
+        const list = (g[o[0]] || []).map(function (it) {
+          return '<div class="item"><div class="head"><span class="ko">' + it.ko + '</span>' +
+            '<span class="lvl">도입 <b>' + it.intro + '</b> · 어법 <b>' + it.explicit + '</b></span></div>' +
+            '<div class="ex">“' + it.ex + '”</div>' + (it.note ? '<div class="note">💡 ' + it.note + '</div>' : '') + '</div>';
+        }).join('');
+        return '<div class="col"><h3 class="' + o[1] + '">' + o[2] + ' (' + (g[o[0]] || []).length + ')</h3>' + list + '</div>';
+      }).join('');
+    }
+
+    document.getElementById('go').addEventListener('click', () => search($q.value));
+    $q.addEventListener('keydown', (e) => { if (e.key === 'Enter') search($q.value); });
+    document.querySelectorAll('.hint code').forEach((c) =>
+      c.addEventListener('click', () => { $q.value = c.textContent; search(c.textContent); }));
+    renderAll();
+  </script>
+</body>
+</html>

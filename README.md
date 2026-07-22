@@ -34,17 +34,33 @@
 - `tall` 은 `tallest` 를 가짐 → 형용사 → `taller` = **굴절어**
 - `teach` 는 `teaching` 을 가짐 → 동사 → `teacher` = **파생어**
 
+## 두 번째 도구: 문법 급수 분류기 (`grammar.html`)
+
+문법 항목을 검색하거나 영어 예문을 붙여넣으면 **초·중·고 중 어디에 해당하는지 개략적으로** 보여줍니다.
+
+- ⚠️ **개략 추정이며 공식 정답표가 아닙니다.** 교육과정 별표4(언어 형식)는 문법 40개를 예문과 함께 나열만 하고
+  학년별로 나누지 않으며, 성취기준 데이터의 `grammar_elements` 컬럼도 비어 있어 자동 연계가 불가능합니다.
+  → 표준 교과 순서 + 교육학 판단에 근거한 **큐레이션 초안**입니다. (검수·수정 대상)
+- **이원 분류**(Pat 지침): **도입급**(의사소통 표현으로 처음 노출) vs **어법 출제 적절급**(명시적 어법 문항 가능).
+  예) 과거시제 → 도입 초5-6 / 어법 중1-3. 대표 급은 어법급을 따릅니다.
+- 영어 예문 구조 탐지(가정법·수동태·현재완료 등)는 정규식 기반이라 개략적입니다.
+
 ## 파일 구조
 
 ```
-index.html        UI (검색창 + 급수/포함 판정표)
-engine.js         형태소 판정 엔진 (순수 함수, 무의존)
-vocab-data.js     앱용 어휘 데이터 (자동 생성)
-vocab-data.json   Node 테스트용 사본 (자동 생성)
-engine.test.js    엔진 테스트 (무의존)
+index.html            단어 급수 검색기 UI
+engine.js             단어 형태소 판정 엔진 (순수 함수, 무의존)
+vocab-data.js/.json   어휘 데이터 (자동 생성)
+engine.test.js        단어 엔진 테스트
+
+grammar.html          문법 급수 분류기 UI
+grammar-data.js       문법 40개 급 분류 데이터 (큐레이션·수정 가능)
+grammar-engine.js     문법 검색 + 예문 구조 탐지 엔진
+grammar-engine.test.js 문법 엔진 테스트
+
 prep/
-  build-vocab.mjs 원본 CSV → vocab-data.* 생성 스크립트
-  source/*.csv    교육과정 어휘 원본 데이터
+  build-vocab.mjs     원본 CSV → vocab-data.* 생성 스크립트
+  source/*.csv        교육과정 원본 데이터 (어휘·성취기준·문법)
 ```
 
 ## 사용
