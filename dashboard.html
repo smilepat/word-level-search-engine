@@ -23,6 +23,11 @@
     h1 { font-size:1.45rem; margin:0 0 4px; }
     .sub { color:var(--muted); font-size:.9rem; margin:0 0 16px; }
     .searchbar { display:flex; gap:8px; margin-bottom:8px; }
+    .searchbar.mini { margin-bottom:12px; }
+    .searchbar.mini input { padding:9px 12px; font-size:.95rem; }
+    .searchbar.mini button { padding:9px 14px; font-size:.9rem; }
+    .panel.word .searchbar.mini button { background:var(--word); }
+    .panel.gram .searchbar.mini button { background:var(--gram); }
     input[type=text] { flex:1; padding:13px 15px; font-size:1.08rem; border:1px solid var(--line);
       border-radius:10px; background:var(--card); color:var(--text); }
     button { padding:13px 20px; font-size:1rem; border:0; border-radius:10px; background:var(--accent);
@@ -68,7 +73,7 @@
 
     <div class="searchbar">
       <input type="text" id="q" placeholder="단어(happiness) 또는 영어 문장을 입력하세요" autocomplete="off" autofocus />
-      <button id="go">분석</button>
+      <button type="button" id="go">분석</button>
     </div>
     <p class="hint">예시:
       <code>happiness</code> <code>circulate</code>
@@ -77,8 +82,19 @@
     </p>
 
     <div class="cols">
-      <div class="panel word"><h2>🔤 단어 급수</h2><div id="wordResult"><p class="empty">검색어를 입력하세요.</p></div></div>
-      <div class="panel gram"><h2>📐 문법 급수</h2><div id="gramResult"><p class="empty">검색어를 입력하세요.</p></div>
+      <div class="panel word"><h2>🔤 단어 급수</h2>
+        <div class="searchbar mini">
+          <input type="text" id="wq" placeholder="단어만 따로 검색 (예: happiness)" autocomplete="off" />
+          <button type="button" id="wgo">검색</button>
+        </div>
+        <div id="wordResult"><p class="empty">단어를 입력하세요.</p></div>
+      </div>
+      <div class="panel gram"><h2>📐 문법 급수</h2>
+        <div class="searchbar mini">
+          <input type="text" id="gq" placeholder="문법만 따로 검색 (예: 가정법)" autocomplete="off" />
+          <button type="button" id="ggo">검색</button>
+        </div>
+        <div id="gramResult"><p class="empty">문법 항목이나 영어 문장을 입력하세요.</p></div>
         <p class="caveat">⚠️ 문법 급 분류는 개략 추정(공식 정답표 아님).</p>
       </div>
     </div>
@@ -161,15 +177,36 @@
       $g.innerHTML = html;
     }
 
+    const $wq = document.getElementById('wq'); // 단어 패널 전용 입력
+    const $gq = document.getElementById('gq'); // 문법 패널 전용 입력
+
+    // 상단 통합 검색: 두 엔진 동시 + 각 패널 입력창도 동기화
     function run(query) {
       const q = (query || '').trim();
-      if (!q) { $w.innerHTML = $g.innerHTML = '<p class="empty">검색어를 입력하세요.</p>'; return; }
+      if (!q) { runWord(''); runGram(''); return; }
+      $wq.value = q; $gq.value = q;
       renderWord(q);
       renderGram(q);
+    }
+    // 단어 패널만 검색
+    function runWord(query) {
+      const q = (query || '').trim();
+      $w.innerHTML = q ? '' : '<p class="empty">단어를 입력하세요.</p>';
+      if (q) renderWord(q);
+    }
+    // 문법 패널만 검색
+    function runGram(query) {
+      const q = (query || '').trim();
+      $g.innerHTML = q ? '' : '<p class="empty">문법 항목이나 영어 문장을 입력하세요.</p>';
+      if (q) renderGram(q);
     }
 
     document.getElementById('go').addEventListener('click', () => run($q.value));
     $q.addEventListener('keydown', (e) => { if (e.key === 'Enter') run($q.value); });
+    document.getElementById('wgo').addEventListener('click', () => runWord($wq.value));
+    $wq.addEventListener('keydown', (e) => { if (e.key === 'Enter') runWord($wq.value); });
+    document.getElementById('ggo').addEventListener('click', () => runGram($gq.value));
+    $gq.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGram($gq.value); });
     document.querySelectorAll('.hint code').forEach((c) =>
       c.addEventListener('click', () => { $q.value = c.textContent; run(c.textContent); }));
   </script>
